@@ -1,0 +1,21 @@
+{
+  "name": "threejs-starter-template",
+  "version": "1.0.0",
+  "description": "",
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "scripts": {
+    "start": "parcel src/index.html --open",
+    "build": "parcel build src/index.html --public-url ./"
+  },
+  "dependencies": {
+    "camera-controls": "^2.7.2",
+    "dat.gui": "0.x",
+    "postprocessing": "^6.33.2",
+    "realism-effects": "^1.1.2",
+    "three": "0.x"
+  },
+  "devDependencies": {
+    "parcel": "^2.7.0"
+  },
+  "keywords": []
+}
