@@ -41,62 +41,10 @@ const params = {
 // Create the scene
 let scene = new THREE.Scene();
 
-let nM = new THREE.TextureLoader().load('normal.png');
-
 const sceneParams = {
   backgroundBlur: 0.5,
   backgroundIntensity: 1,
-  doubleSided: true,
-  redColor: 0xff0000,
-  greenColor: 0x00ff00,
-  transparentColor: 0xffffff,
-};
-
-const materialParams = {
-  transmission: 0.9,
-  color: 0xffffff,
-  roughness: 0.05,
-  thickness: 0.1,
-  ior: 1.5,
-  envMapIntensity: 2,
-  opacity: 1,
-  transparent: true,
-  side: THREE.DoubleSide,
-  //attenuationDistance: 0.001,
-};
-
-let materials = {
-  vetroRossoX: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    color: sceneParams.redColor,
-    attenuationColor: new THREE.Color(sceneParams.redColor),
-  }),
-  vetroRossoXRigato: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    normalMap: nM,
-    color: sceneParams.redColor,
-    attenuationColor: new THREE.Color(sceneParams.redColor),
-  }),
-  vetroTrasparente: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    attenuationColor: new THREE.Color(sceneParams.transparentColor),
-  }),
-  vetroTrasparenteRigato: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    normalMap: nM,
-    attenuationColor: new THREE.Color(sceneParams.transparentColor),
-  }),
-  vetroVerdeX: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    color: sceneParams.greenColor,
-    attenuationColor: new THREE.Color(sceneParams.greenColor),
-  }),
-  vetroVerdeXRigato: new THREE.MeshPhysicalMaterial({
-    ...materialParams,
-    normalMap: nM,
-    color: sceneParams.greenColor,
-    attenuationColor: new THREE.Color(sceneParams.greenColor),
-  }),
+  envMapIntensity: 2
 };
 
 // Create the renderer via 'createRenderer',
@@ -149,40 +97,10 @@ let app = {
     this.controls.target.y = 0.5;
     // GUI controls
     const gui = new dat.GUI();
-    gui.addColor(sceneParams, 'redColor').onChange(() => {
-      materials.vetroRossoX.color.set(sceneParams.redColor);
-      materials.vetroRossoXRigato.color.set(sceneParams.redColor);
-    });
-    gui.addColor(sceneParams, 'transparentColor').onChange(() => {
-      materials.vetroTrasparente.color.set(sceneParams.transparentColor);
-      materials.vetroTrasparenteRigato.color.set(sceneParams.transparentColor);
-    });
-    gui.addColor(sceneParams, 'greenColor').onChange(() => {
-      materials.vetroVerdeX.color.set(sceneParams.greenColor);
-      materials.vetroVerdeXRigato.color.set(sceneParams.greenColor);
-    });
 
     gui
-      .add(materialParams, 'transmission', 0.01, 1)
+      .add(sceneParams, 'envMapIntensity', 0, 5)
       .onChange(() => this.updateMaterials());
-    gui
-      .add(materialParams, 'roughness', 0, 1)
-      .onChange(() => this.updateMaterials());
-    gui.add(materialParams, 'ior', 1, 2).onChange(() => this.updateMaterials());
-    gui
-      .add(materialParams, 'thickness', 0, 5)
-      .onChange(() => this.updateMaterials());
-    // gui
-    //   .add(materialParams, 'attenuationDistance', 0.0001, 0.1)
-    //   .onChange(() => this.updateMaterials());
-    gui
-      .add(materialParams, 'opacity', 0, 1)
-      .onChange(() => this.updateMaterials());
-
-    gui
-      .add(materialParams, 'envMapIntensity', 0, 5)
-      .onChange(() => this.updateMaterials());
-    gui.add(sceneParams, 'doubleSided').onChange(() => this.updateMaterials());
     gui
       .add(sceneParams, 'backgroundBlur', 0, 1)
       .onChange(() => this.updateMaterials());
@@ -219,32 +137,6 @@ let app = {
         gltf.scene.traverse(function (child) {
           if (child.isMesh) {
             child.material.envMapIntensity = 2;
-
-            if (child.material.name === 'vetro_rossox') {
-              if (child.name.includes('rigato')) {
-                child.material = materials.vetroRossoXRigato;
-              } else {
-                child.material = materials.vetroRossoX;
-              }
-            }
-
-            if (child.material.name === 'vetro_trasparente') {
-              if (child.name.includes('rigato')) {
-                child.material = materials.vetroTrasparenteRigato;
-              } else {
-                child.material = materials.vetroTrasparente;
-              }
-            }
-
-            if (child.material.name === 'vetro_verdex') {
-              if (child.name.includes('rigato')) {
-                child.material = materials.vetroVerdeXRigato;
-              } else {
-                child.material = materials.vetroVerdeX;
-              }
-            }
-
-            child.material.needsUpdate = true;
           }
         });
 
@@ -267,20 +159,9 @@ let app = {
     scene.backgroundIntensity = sceneParams.backgroundIntensity;
 
     scene.traverse(function (child) {
-      if (child.isMesh && child.material._transmission > 0) {
-        child.material.transmission = materialParams.transmission;
-        child.material.ior = materialParams.ior;
-        child.material.roughness = materialParams.roughness;
-        child.material.thickness = materialParams.thickness;
-        //child.material.attenuationDistance = materialParams.attenuationDistance;
-        child.material.envMapIntensity = materialParams.envMapIntensity;
-        child.material.opacity = materialParams.opacity;
+      if (child.isMesh) {
+        child.material.envMapIntensity = sceneParams.envMapIntensity;
 
-        if (sceneParams.doubleSided) {
-          child.material.side = THREE.DoubleSide;
-        } else {
-          child.material.side = THREE.FrontSide;
-        }
       }
     });
   },
@@ -294,4 +175,4 @@ let app = {
  * ps. if you don't use custom shaders, pass undefined to the 'uniforms'(2nd-last) param
  * ps. if you don't use post-processing, pass undefined to the 'composer'(last) param
  *************************************************/
-runApp(app, scene, renderer, camera, true, undefined, composer);
+runApp(app, scene, renderer, camera, true, undefined, undefined);
