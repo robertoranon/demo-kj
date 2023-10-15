@@ -1,21 +1,23 @@
 {
-  "name": "threejs-starter-template",
-  "version": "1.0.0",
-  "description": "",
-  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "name": "vite_demo_kj",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "parcel src/index.html --open",
-    "build": "parcel build src/index.html --public-url ./"
-  },
-  "dependencies": {
-    "camera-controls": "^2.7.2",
-    "dat.gui": "0.x",
-    "postprocessing": "^6.33.2",
-    "realism-effects": "^1.1.2",
-    "three": "0.x"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "parcel": "^2.7.0"
+    "camera-controls": "^2.7.2",
+    "postprocessing": "^6.33.2",
+    "realism-effects": "^1.1.2",
+    "three": "0.157",
+    "vite": "^4.4.5"
   },
-  "keywords": []
+  "dependencies": {
+    "@tweakpane/plugin-essentials": "^0.2.0",
+    "await-to-js": "^3.0.0",
+    "tweakpane": "^4.0.1"
+  }
 }
