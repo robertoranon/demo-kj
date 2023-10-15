@@ -69,7 +69,7 @@ let renderer = createRenderer({ antialias: true }, _renderer => {
 
 // Create the camera
 // Pass in fov, near, far and camera position respectively
-let camera = createCamera(35, 0.1, 200, { x: 0, y: 5, z: 15 });
+let camera = createCamera(35, 0.1, 200, { x: 0, y: 0, z: 15 });
 
 // If you don't need post-processing, just comment/delete the following creation code, and skip passing any composer to 'runApp' at the bottom
 // The RenderPass is already created in 'createComposer'
@@ -135,7 +135,6 @@ const tweakComposerEffects = (e, effect) => {
 
 const fpsGraph = pane.addBlade({
     view: 'fpsgraph',
-
     label: 'fpsgraph',
     rows: 2,
 });

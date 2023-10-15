@@ -105,11 +105,6 @@ export const runApp = (
     };
 
     app.initScene()
-        .then(() => {
-            const veil = document.getElementById('veil');
-            veil.style.opacity = 0;
-            return true;
-        })
         .then(animate)
         .then(() => {
             // debugging info
