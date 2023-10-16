@@ -92,8 +92,8 @@ class SceneManager {
             })
             .on('change', e => {
                 // this.tweakComposerEffects(e, bloomPass);
-                this.pane.bloomParamsFolder.disabled =
-                    !this.pane.bloomParamsFolder.disabled;
+                this.pane.bloomLightsParamsFolder.disabled =
+                    !this.pane.bloomLightsParamsFolder.disabled;
             });
 
         this.pane.bloomParamsFolder
@@ -120,8 +120,41 @@ class SceneManager {
                 e => (this.effectsManager.bloomPass.radius = Number(e.value))
             );
 
-        this.pane.bloomParamsFolder
-            .addBinding(this.pane.bloomParams, 'exposure', { min: 0, max: 3 })
+        this.pane.bloomLightsParamsFolder
+            .addBinding(this.pane.bloomLightsParams, 'threshold', {
+                min: 0,
+                max: 1,
+            })
+            .on(
+                'change',
+                e => (this.effectsManager.bloomPass.threshold = Number(e.value))
+            );
+
+        this.pane.bloomLightsParamsFolder
+            .addBinding(this.pane.bloomLightsParams, 'strength', {
+                min: 0,
+                max: 3,
+            })
+            .on(
+                'change',
+                e => (this.effectsManager.bloomPass.strength = Number(e.value))
+            );
+
+        this.pane.bloomLightsParamsFolder
+            .addBinding(this.pane.bloomLightsParams, 'radius', {
+                min: 0,
+                max: 3,
+            })
+            .on(
+                'change',
+                e => (this.effectsManager.bloomPass.radius = Number(e.value))
+            );
+
+        this.pane.toneMappingFolder
+            .addBinding(this.pane.toneMappingParams, 'exposure', {
+                min: 0,
+                max: 3,
+            })
             .on(
                 'change',
                 e =>

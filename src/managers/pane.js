@@ -35,6 +35,15 @@ class PaneManager {
             threshold: 0.5,
             strength: 0.5,
             radius: 0,
+        };
+
+        this.bloomLightsParams = {
+            threshold: 1,
+            strength: 2,
+            radius: 0.3,
+        };
+
+        this.toneMappingParams = {
             exposure: 1,
         };
 
@@ -45,6 +54,15 @@ class PaneManager {
         this.bloomParamsFolder = this.pane.addFolder({
             disabled: !this.sceneParams.bloom,
             title: 'Model Bloom Params',
+        });
+
+        this.bloomLightsParamsFolder = this.pane.addFolder({
+            disabled: !this.sceneParams.light_bloom,
+            title: 'Lights Bloom Params',
+        });
+
+        this.toneMappingFolder = this.pane.addFolder({
+            title: 'Tone Mapping Params',
         });
     }
 }
