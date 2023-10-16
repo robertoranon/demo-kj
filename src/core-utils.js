@@ -136,7 +136,6 @@ export const createRenderer = (
 
     // more configurations to the renderer from the consumer
     configureRenderer(renderer);
-
     return renderer;
 };
 

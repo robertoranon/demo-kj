@@ -113,7 +113,6 @@ const updateModel = modelName => {
         });
 
         scene.add(gltf.scene);
-        computeWorldBounds(gltf.scene);
     });
 };
 
@@ -193,7 +192,6 @@ let app = {
                 });
 
                 scene.add(gltf.scene);
-                computeWorldBounds(gltf.scene);
             });
         });
     },
