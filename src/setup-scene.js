@@ -5,6 +5,7 @@ import {
     SRGBColorSpace,
     EquirectangularReflectionMapping,
     Color,
+    Vector2,
 } from 'three';
 import { Pane } from 'tweakpane';
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
@@ -12,20 +13,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
-import {
-    NormalPass,
-    SSAOEffect,
-    EffectPass,
-    BloomEffect,
-} from 'postprocessing';
+// Addons
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // Core boilerplate code deps
-import {
-    createCamera,
-    createComposer,
-    createRenderer,
-    computeWorldBounds,
-} from './core-utils';
+import { createCamera, createComposer, createRenderer } from './core-utils';
 
 // previously this feature is .legacyMode = false, see https://www.donmccurdy.com/2020/06/17/color-management-in-threejs/
 // turning this on has the benefit of doing certain automatic conversions (for hexadecimal and CSS colors from sRGB to linear-sRGB)
@@ -38,6 +31,7 @@ const modelLoader = new GLTFLoader();
 const rgbeLoader = new RGBELoader();
 
 let hdrList = {
+    hdri_lampadario_13: 'hdri_lampadario_13.hdr',
     hdri_lampadario_05: 'hdri_lampadario_05.hdr',
     royal_esplanade_1k: 'royal_esplanade_1k.hdr',
 };
@@ -48,7 +42,15 @@ const sceneParams = {
     envMapIntensity: 1,
     effect: false,
     bloom: false,
+    light_bloom: false,
     hdr: Object.values(hdrList)[0],
+};
+
+const bloomParams = {
+    threshold: 0,
+    strength: 1,
+    radius: 0,
+    exposure: 1,
 };
 
 const pane = new Pane({
@@ -57,6 +59,14 @@ const pane = new Pane({
 });
 
 pane.registerPlugin(EssentialsPlugin);
+
+const sceneParamsFolder = pane.addFolder({
+    title: 'Scene Params',
+});
+
+const bloomParamsFolder = pane.addFolder({
+    title: 'Bloom Params',
+});
 
 // Create the renderer via 'createRenderer',
 // 1st param receives additional WebGLRenderer properties
@@ -76,21 +86,17 @@ let camera = createCamera(35, 0.1, 200, { x: 0, y: 0, z: 15 });
 let composer = createComposer(renderer, scene, camera, () => {});
 
 // Differents Effects
-const normalPass = new NormalPass(scene, camera);
-const effect = new SSAOEffect(camera, normalPass.texture, {
-    worldDistanceThreshold: 100,
-    worldDistanceFalloff: 5,
-    worldProximityThreshold: 10,
-    worldProximityFalloff: 0.1,
-    luminanceInfluence: 0.7,
-    samples: 16,
-    radius: 0.1,
-    intensity: 3,
-    resolutionScale: 1,
-});
+const bloomPass = new UnrealBloomPass(
+    new Vector2(window.innerWidth, window.innerHeight),
+    1.5,
+    0.4,
+    0.85
+);
+bloomPass.threshold = bloomParams.threshold;
+bloomPass.strength = bloomParams.strength;
+bloomPass.radius = bloomParams.radius;
 
-const effectPass = new EffectPass(camera, effect);
-const bloomPass = new EffectPass(camera, new BloomEffect());
+const outputPass = new OutputPass();
 
 const updateMaterials = () => {
     scene.backgroundBlurriness = sceneParams.backgroundBlur;
@@ -130,6 +136,7 @@ const updateHDRList = (filename, hdrUrl) => {
 const tweakComposerEffects = (e, effect) => {
     const value = e.value;
     value ? composer.addPass(effect) : composer.removePass(effect);
+    value ? composer.addPass(outputPass) : composer.removePass(outputPass);
 };
 
 const fpsGraph = pane.addBlade({
@@ -138,30 +145,54 @@ const fpsGraph = pane.addBlade({
     rows: 2,
 });
 
-pane.addBinding(sceneParams, 'envMapIntensity', {
-    min: 0,
-    max: 4,
-}).on('change', () => updateMaterials());
+sceneParamsFolder
+    .addBinding(sceneParams, 'envMapIntensity', {
+        min: 0,
+        max: 4,
+    })
+    .on('change', () => updateMaterials());
 
-pane.addBinding(sceneParams, 'backgroundBlur', {
-    min: 0,
-    max: 1,
-}).on('change', () => updateMaterials());
+sceneParamsFolder
+    .addBinding(sceneParams, 'backgroundBlur', {
+        min: 0,
+        max: 1,
+    })
+    .on('change', () => updateMaterials());
 
-pane.addBinding(sceneParams, 'backgroundIntensity', {
-    min: 0,
-    max: 5,
-}).on('change', () => updateMaterials());
+sceneParamsFolder
+    .addBinding(sceneParams, 'backgroundIntensity', {
+        min: 0,
+        max: 5,
+    })
+    .on('change', () => updateMaterials());
 
-pane.addBinding(sceneParams, 'effect').on('change', e =>
-    tweakComposerEffects(e, effectPass)
-);
+sceneParamsFolder
+    .addBinding(sceneParams, 'bloom')
+    .on('change', e => tweakComposerEffects(e, bloomPass));
 
-pane.addBinding(sceneParams, 'bloom').on('change', e =>
-    tweakComposerEffects(e, bloomPass)
-);
+bloomParamsFolder
+    .addBinding(bloomParams, 'threshold', {
+        min: 0,
+        max: 1,
+    })
+    .on('change', value => (bloomPass.threshold = Number(value)));
 
-const hdr = pane
+bloomParamsFolder
+    .addBinding(bloomParams, 'strength', { min: 0, max: 3 })
+    .on('change', value => (bloomPass.strength = Number(value)));
+
+bloomParamsFolder
+    .addBinding(bloomParams, 'radius', { min: 0, max: 3 })
+    .on('change', value => (bloomPass.radius = Number(value)));
+
+bloomParamsFolder
+    .addBinding(bloomParams, 'exposure', { min: 0, max: 3 })
+    .on(
+        'change',
+        value => (renderer.toneMappingExposure = Math.pow(value, 4.0))
+    );
+
+const hdr = sceneParamsFolder
     .addBinding(sceneParams, 'hdr', {
         options: hdrList,
     })

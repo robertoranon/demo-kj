@@ -1,8 +1,8 @@
 // This core-utils contains the most important/top-level functions needed in creating a threejs application
 
 import * as THREE from 'three';
-import { EffectComposer, EffectPass, RenderPass } from 'postprocessing';
-import { HalfFloatType } from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 
 /**
  * Initializes a reasonable uniforms object ready to be used in fragments
@@ -148,14 +148,15 @@ export const createRenderer = (
  * @returns The created composer object used for post processing
  */
 export const createComposer = (renderer, scene, camera, extraPasses) => {
-    const composer = new EffectComposer(renderer, {
-        frameBufferType: HalfFloatType,
-    });
+    // const composer = new EffectComposer(renderer, {
+    //     frameBufferType: HalfFloatType,
+    // });
+
+    const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
 
     // custom passes that the consumer wants to add
     extraPasses(composer);
-
     return composer;
 };
 
