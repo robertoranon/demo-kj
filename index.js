@@ -1,4 +1,6 @@
-import { runApp } from './src/core-utils';
-import { app, scene, renderer, camera, composer } from './src/setup-scene';
+import { SceneManager } from './src/managers/scene';
 
-runApp(app, scene, renderer, camera, true, undefined, composer);
+const container = document.querySelector('#container');
+const sceneManager = new SceneManager(container);
+
+sceneManager.setupScene();
