@@ -6,11 +6,23 @@ import {
     Color,
     Clock,
     AnimationMixer,
+    Box3,
+    Vector3,
 } from 'three';
 
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// Loaders
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+import {
+    bloomParams,
+    toneMappingParams,
+    sceneParams,
+    hdrList,
+} from '../params';
 
 // Core boilerplate code deps
 import {
@@ -25,10 +37,20 @@ import { PaneManager } from './pane';
 import { PPEffectsManager } from './effects';
 
 class SceneManager {
-    constructor(container) {
+    constructor(container, options) {
         this.scene = new Scene();
-        this.modelLoader = new GLTFLoader();
+        this.gltfloader = new GLTFLoader();
         this.rgbeLoader = new RGBELoader();
+
+        const { useDracoCompression } = options;
+
+        if (useDracoCompression) {
+            const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath('draco/');
+
+            this.gltfloader.setDRACOLoader(dracoLoader);
+        }
+
         this.pane = new PaneManager('#tweakContainer', 'Model Scene Controls');
         this.effectsManager = new PPEffectsManager();
         this.container = container;
@@ -41,7 +63,7 @@ class SceneManager {
             _renderer.outputColorSpace = SRGBColorSpace;
         });
 
-        this.camera = createCamera(35, 0.1, 200, { x: 0, y: 0, z: 15 });
+        this.camera = createCamera(35, 0.1, 200, { x: 0, y: 0, z: 3.5 });
         this.clock = new Clock();
         this.mixer = undefined;
 
@@ -58,7 +80,9 @@ class SceneManager {
             this.scene,
             this.camera,
             comp => {
-                this.pane.sceneParams.bloom ? comp.addPass(bloomPass) : null;
+                sceneParams.bloom
+                    ? comp.addPass(this.effectsManager.bloomPass)
+                    : null;
             }
         );
 
@@ -68,16 +92,25 @@ class SceneManager {
         this.setupPaneControls();
     }
 
+    recenterModel(modelScene) {
+        const modelBox = new Box3().setFromObject(modelScene);
+        const boxCenter = modelBox.getCenter(new Vector3());
+
+        modelScene.position.x += modelScene.position.x - boxCenter.x;
+        modelScene.position.y += modelScene.position.y - boxCenter.y;
+        modelScene.position.z += modelScene.position.z - boxCenter.z;
+    }
+
     setupPaneControls() {
         this.pane.sceneParamsFolder
-            .addBinding(this.pane.sceneParams, 'envMapIntensity', {
+            .addBinding(sceneParams, 'envMapIntensity', {
                 min: 0,
                 max: 4,
             })
             .on('change', () => this.updateMaterials());
 
         this.pane.sceneParamsFolder
-            .addBinding(this.pane.sceneParams, 'bloom', {
+            .addBinding(sceneParams, 'bloom', {
                 label: 'Model Bloom effect',
             })
             .on('change', e => {
@@ -86,18 +119,8 @@ class SceneManager {
                     !this.pane.bloomParamsFolder.disabled;
             });
 
-        this.pane.sceneParamsFolder
-            .addBinding(this.pane.sceneParams, 'light_bloom', {
-                label: 'Lights Bloom effect',
-            })
-            .on('change', e => {
-                // this.tweakComposerEffects(e, bloomPass);
-                this.pane.bloomLightsParamsFolder.disabled =
-                    !this.pane.bloomLightsParamsFolder.disabled;
-            });
-
         this.pane.bloomParamsFolder
-            .addBinding(this.pane.bloomParams, 'threshold', {
+            .addBinding(bloomParams, 'threshold', {
                 min: 0,
                 max: 1,
             })
@@ -107,51 +130,21 @@ class SceneManager {
             );
 
         this.pane.bloomParamsFolder
-            .addBinding(this.pane.bloomParams, 'strength', { min: 0, max: 3 })
+            .addBinding(bloomParams, 'strength', { min: 0, max: 3 })
             .on(
                 'change',
                 e => (this.effectsManager.bloomPass.strength = Number(e.value))
             );
 
         this.pane.bloomParamsFolder
-            .addBinding(this.pane.bloomParams, 'radius', { min: 0, max: 3 })
-            .on(
-                'change',
-                e => (this.effectsManager.bloomPass.radius = Number(e.value))
-            );
-
-        this.pane.bloomLightsParamsFolder
-            .addBinding(this.pane.bloomLightsParams, 'threshold', {
-                min: 0,
-                max: 1,
-            })
-            .on(
-                'change',
-                e => (this.effectsManager.bloomPass.threshold = Number(e.value))
-            );
-
-        this.pane.bloomLightsParamsFolder
-            .addBinding(this.pane.bloomLightsParams, 'strength', {
-                min: 0,
-                max: 3,
-            })
-            .on(
-                'change',
-                e => (this.effectsManager.bloomPass.strength = Number(e.value))
-            );
-
-        this.pane.bloomLightsParamsFolder
-            .addBinding(this.pane.bloomLightsParams, 'radius', {
-                min: 0,
-                max: 3,
-            })
+            .addBinding(bloomParams, 'radius', { min: 0, max: 3 })
             .on(
                 'change',
                 e => (this.effectsManager.bloomPass.radius = Number(e.value))
             );
 
         this.pane.toneMappingFolder
-            .addBinding(this.pane.toneMappingParams, 'exposure', {
+            .addBinding(toneMappingParams, 'exposure', {
                 min: 0,
                 max: 3,
             })
@@ -162,8 +155,8 @@ class SceneManager {
             );
 
         const hdr = this.pane.sceneParamsFolder
-            .addBinding(this.pane.sceneParams, 'hdr', {
-                options: this.pane.hdrList,
+            .addBinding(sceneParams, 'hdr', {
+                options: hdrList,
             })
             .on('change', e => this.updateHDR(e.value));
     }
@@ -176,7 +169,12 @@ class SceneManager {
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
+            console.log({
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+            });
             this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.composer.setSize(window.innerWidth, window.innerHeight);
             // update uniforms.u_resolution
             if (uniforms.u_resolution !== undefined) {
                 uniforms.u_resolution.value.x =
@@ -224,7 +222,6 @@ class SceneManager {
         }
 
         await this.initScene();
-        this.animate();
     };
 
     async initScene() {
@@ -233,31 +230,28 @@ class SceneManager {
 
         const self = this;
 
-        this.rgbeLoader.load(
-            Object.values(self.pane.hdrList)[0],
-            function (texture) {
-                texture.mapping = EquirectangularReflectionMapping;
-                self.scene.background = new Color(0x000000);
-                // self.background = texture;
-                self.scene.backgroundBlurriness =
-                    self.pane.sceneParams.backgroundBlur;
-                self.scene.backgroundIntensity =
-                    self.pane.sceneParams.backgroundIntensity;
-                self.scene.environment = texture;
+        this.rgbeLoader.load(Object.values(hdrList)[0], function (texture) {
+            texture.mapping = EquirectangularReflectionMapping;
+            self.scene.background = new Color(0x000000);
+            // self.background = texture;
+            self.scene.backgroundBlurriness = sceneParams.backgroundBlur;
+            self.scene.backgroundIntensity = sceneParams.backgroundIntensity;
+            self.scene.environment = texture;
 
-                self.modelLoader.load('Lampadario.glb', function (gltf) {
-                    gltf.scene.traverse(function (child) {
-                        if (child.isMesh) {
-                            child.material.envMapIntensity =
-                                self.pane.sceneParams.envMapIntensity;
-                        }
-                    });
-
-                    self.mixer = new AnimationMixer(gltf.scene);
-                    self.scene.add(gltf.scene);
+            self.gltfloader.load('Lampadario.glb', function (gltf) {
+                gltf.scene.traverse(function (child) {
+                    if (child.isMesh) {
+                        child.material.envMapIntensity =
+                            sceneParams.envMapIntensity;
+                    }
                 });
-            }
-        );
+
+                self.mixer = new AnimationMixer(gltf.scene);
+                self.recenterModel(gltf.scene);
+                self.scene.add(gltf.scene);
+                self.animate();
+            });
+        });
     }
 
     // The engine that powers your scene into movement
@@ -281,16 +275,12 @@ class SceneManager {
     }
 
     updateMaterials = () => {
-        const self = this;
-
-        this.scene.backgroundBlurriness = this.pane.sceneParams.backgroundBlur;
-        this.scene.backgroundIntensity =
-            this.pane.sceneParams.backgroundIntensity;
+        this.scene.backgroundBlurriness = sceneParams.backgroundBlur;
+        this.scene.backgroundIntensity = sceneParams.backgroundIntensity;
 
         this.scene.traverse(function (child) {
             if (child.isMesh) {
-                child.material.envMapIntensity =
-                    self.pane.sceneParams.envMapIntensity;
+                child.material.envMapIntensity = sceneParams.envMapIntensity;
             }
         });
     };
@@ -299,11 +289,11 @@ class SceneManager {
         this.scene.remove(this.scene.children[0]);
         const self = this;
 
-        this.modelLoader.load(modelName, function (gltf) {
+        this.gltfloader.load(modelName, function (gltf) {
             gltf.scene.traverse(function (child) {
                 if (child.isMesh) {
                     child.material.envMapIntensity =
-                        self.pane.sceneParams.envMapIntensity;
+                        sceneParams.envMapIntensity;
                 }
             });
 

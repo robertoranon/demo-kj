@@ -1,5 +1,6 @@
 import { Pane } from 'tweakpane';
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
+import { sceneParams } from '../params';
 
 class PaneManager {
     constructor(containerElement, title = 'Generic Pane') {
@@ -16,49 +17,13 @@ class PaneManager {
             rows: 2,
         });
 
-        this.hdrList = {
-            hdri_lampadario_13: 'hdri_lampadario_13.hdr',
-            hdri_lampadario_05: 'hdri_lampadario_05.hdr',
-            royal_esplanade_1k: 'royal_esplanade_1k.hdr',
-        };
-
-        this.sceneParams = {
-            backgroundBlur: 0.5,
-            backgroundIntensity: 1,
-            envMapIntensity: 1,
-            bloom: false,
-            light_bloom: false,
-            hdr: Object.values(this.hdrList)[0],
-        };
-
-        this.bloomParams = {
-            threshold: 0.5,
-            strength: 0.5,
-            radius: 0,
-        };
-
-        this.bloomLightsParams = {
-            threshold: 1,
-            strength: 2,
-            radius: 0.3,
-        };
-
-        this.toneMappingParams = {
-            exposure: 1,
-        };
-
         this.sceneParamsFolder = this.pane.addFolder({
             title: 'Scene Params',
         });
 
         this.bloomParamsFolder = this.pane.addFolder({
-            disabled: !this.sceneParams.bloom,
+            disabled: !sceneParams.bloom,
             title: 'Model Bloom Params',
-        });
-
-        this.bloomLightsParamsFolder = this.pane.addFolder({
-            disabled: !this.sceneParams.light_bloom,
-            title: 'Lights Bloom Params',
         });
 
         this.toneMappingFolder = this.pane.addFolder({
