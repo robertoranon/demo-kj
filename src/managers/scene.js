@@ -39,10 +39,11 @@ import { PPEffectsManager } from './effects';
 class SceneManager {
     constructor(container, options) {
         this.scene = new Scene();
+        this.pane = undefined;
         this.gltfloader = new GLTFLoader();
         this.rgbeLoader = new RGBELoader();
 
-        const { useDracoCompression } = options;
+        const { usePanelControl, useDracoCompression } = options;
 
         if (useDracoCompression) {
             const dracoLoader = new DRACOLoader();
@@ -51,7 +52,6 @@ class SceneManager {
             this.gltfloader.setDRACOLoader(dracoLoader);
         }
 
-        this.pane = new PaneManager('#tweakContainer', 'Model Scene Controls');
         this.effectsManager = new PPEffectsManager();
         this.container = container;
 
@@ -89,7 +89,13 @@ class SceneManager {
         this.animationBinder = this.animate.bind(this);
         this.requestAnimationID = null;
 
-        this.setupPaneControls();
+        if (usePanelControl) {
+            this.pane = new PaneManager(
+                '#tweakContainer',
+                'Model Scene Controls'
+            );
+            this.setupPaneControls();
+        }
     }
 
     recenterModel(modelScene) {
@@ -225,7 +231,8 @@ class SceneManager {
     };
 
     async initScene() {
-        this.controls.maxDistance = 5;
+        this.controls.maxDistance = 4;
+        this.controls.minDistance = 2;
         this.controls.enableDamping = true;
 
         const self = this;
@@ -256,7 +263,7 @@ class SceneManager {
 
     // The engine that powers your scene into movement
     animate() {
-        this.pane.fpsGraph.begin();
+        if (this.pane) this.pane.fpsGraph.begin();
 
         const delta = this.clock.getDelta();
         this.requestAnimationID = requestAnimationFrame(this.animationBinder);
@@ -265,7 +272,7 @@ class SceneManager {
 
         this.controls.update();
 
-        this.pane.fpsGraph.end();
+        if (this.pane) this.pane.fpsGraph.end();
 
         if (this.composer === null) {
             this.renderer.render(this.scene, this.camera);
